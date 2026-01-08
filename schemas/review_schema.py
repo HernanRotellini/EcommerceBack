@@ -1,10 +1,11 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional #, TYPE_CHECKING (Ya no es necesario)
 from pydantic import Field
 
 from schemas.base_schema import BaseSchema
 
-if TYPE_CHECKING:
-    from schemas.product_schema import ProductSchema
+# ❌ BORRA O COMENTA ESTO PARA EVITAR EL CICLO
+# if TYPE_CHECKING:
+#     from schemas.product_schema import ProductSchema
 
 
 class ReviewSchema(BaseSchema):
@@ -29,4 +30,5 @@ class ReviewSchema(BaseSchema):
         description="Product ID reference (required)"
     )
 
-    product: Optional['ProductSchema'] = None
+    # 🛑 ESTA LÍNEA ES LA CULPABLE DEL BUCLE. COMÉNTALA O BÓRRALA.
+    # product: Optional['ProductSchema'] = None
