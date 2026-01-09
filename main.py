@@ -37,7 +37,7 @@ from controllers.order_detail_controller import OrderDetailController
 from controllers.product_controller import ProductController
 from controllers.review_controller import ReviewController
 from controllers.health_check import router as health_check_controller
-
+from controllers.cart_controller import CartController
 # ---- CONFIG ----
 from config.database import create_tables, engine
 from config.redis_config import redis_config, check_redis_connection
@@ -78,6 +78,9 @@ def create_fastapi_app() -> FastAPI:
     if not os.path.exists(static_dir):
         os.makedirs(static_dir)
     
+
+
+    fastapi_app.include_router(CartController().router, prefix="/api/v1/cart")  
     fastapi_app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     fastapi_app.include_router(ClientController().router, prefix="/api/v1/clients")
