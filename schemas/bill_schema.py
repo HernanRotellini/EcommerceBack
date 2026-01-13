@@ -1,4 +1,3 @@
-"""Bill schema with validation."""
 from datetime import date as DateType
 from typing import Optional, TYPE_CHECKING
 from pydantic import Field
@@ -7,11 +6,9 @@ from schemas.base_schema import BaseSchema
 from models.enums import PaymentType
 
 if TYPE_CHECKING:
-    from schemas.order_schema import OrderSchema
     from schemas.client_schema import ClientSchema
 
 
-# 1. Creamos una clase BASE con los campos comunes
 class BillBaseSchema(BaseSchema):
     bill_number: str = Field(..., min_length=1, max_length=50, description="Unique bill number (required)")
     discount: Optional[float] = Field(None, ge=0, description="Discount amount (must be >= 0)")
@@ -21,16 +18,14 @@ class BillBaseSchema(BaseSchema):
     client_id: int = Field(..., description="Client ID reference (required)")
 
 
-# 2. Esquema para CREAR (No pide id_key)
 class BillCreateSchema(BillBaseSchema):
     pass
 
 
-# 3. Esquema para RESPONDER (Incluye id_key y relaciones)
 class BillSchema(BillBaseSchema):
     """Schema for Bill entity with validations."""
-    id_key: int  # ✅ Solo aquí es obligatorio
+    id_key: int
 
     # Relationships
-    order: Optional["OrderSchema"] = None
+    # order: Optional["OrderSchema"] = None  # Comentado para evitar recursion infinita
     client: Optional["ClientSchema"] = None
