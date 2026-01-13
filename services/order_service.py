@@ -1,4 +1,3 @@
-"""OrderService with foreign key validation and business logic."""
 import logging
 from sqlalchemy.orm import Session
 from datetime import datetime
@@ -11,12 +10,12 @@ from repositories.base_repository_impl import InstanceNotFoundError
 from schemas.order_schema import OrderSchema
 from services.base_service_impl import BaseServiceImpl
 from utils.logging_utils import get_sanitized_logger
+from models.enums import Status
 
 logger = get_sanitized_logger(__name__)
 
 
 class OrderService(BaseServiceImpl):
-    """Service for Order entity with validation and business logic."""
 
     def __init__(self, db: Session):
         super().__init__(
@@ -28,73 +27,58 @@ class OrderService(BaseServiceImpl):
         self._client_repository = ClientRepository(db)
         self._bill_repository = BillRepository(db)
 
-    def save(self, schema: OrderSchema) -> OrderSchema:
-        """
-        Create a new order with validation
+    def save(self, schema) -> OrderSchema:
+        
+        # Convert to dict to check fields safely
+        order_data = schema.model_dump(exclude_unset=True)
 
-        Args:
-            schema: Order data to create
-
-        Returns:
-            Created order
-
-        Raises:
-            InstanceNotFoundError: If client or bill doesn't exist
-            ValueError: If validation fails
-        """
-        # Validate required fields
-        if schema.client_id is None:
+        if "client_id" not in order_data or order_data["client_id"] is None:
             raise ValueError("client_id is required")
-        if schema.bill_id is None:
+        if "bill_id" not in order_data or order_data["bill_id"] is None:
             raise ValueError("bill_id is required")
-        if schema.total is None:
+        if "total" not in order_data or order_data["total"] is None:
             raise ValueError("total is required")
-        if schema.delivery_method is None:
+        if "delivery_method" not in order_data or order_data["delivery_method"] is None:
             raise ValueError("delivery_method is required")
         
-        # Validate client exists
+        client_id = order_data["client_id"]
+        bill_id = order_data["bill_id"]
+
         try:
-            self._client_repository.find(schema.client_id)
+            self._client_repository.find(client_id)
         except InstanceNotFoundError:
-            logger.error(f"Client with id {schema.client_id} not found")
-            raise InstanceNotFoundError(f"Client with id {schema.client_id} not found")
+            logger.error(f"Client with id {client_id} not found")
+            raise InstanceNotFoundError(f"Client with id {client_id} not found")
 
-        # Validate bill exists
         try:
-            self._bill_repository.find(schema.bill_id)
+            self._bill_repository.find(bill_id)
         except InstanceNotFoundError:
-            logger.error(f"Bill with id {schema.bill_id} not found")
-            raise InstanceNotFoundError(f"Bill with id {schema.bill_id} not found")
+            logger.error(f"Bill with id {bill_id} not found")
+            raise InstanceNotFoundError(f"Bill with id {bill_id} not found")
 
-        # Set creation date if not provided
-        if schema.date is None:
-            schema.date = datetime.utcnow()
+        # Inject defaults if missing
+        if "date" not in order_data:
+            # We modify the schema object itself if possible, or prepare data for super
+            # Since super().save() expects a schema, let's inject into a new model instance
+            # But BaseService.save expects a schema.
+            # The trick: We create the Model instance manually here to bypass Schema validation of missing fields
+            pass 
 
-        # Set default status if not provided
-        if schema.status is None:
-            from models.enums import Status
-            schema.status = Status.PENDING
+        # Create Model directly to inject defaults safely
+        final_data = order_data.copy()
+        if "date" not in final_data:
+            final_data["date"] = datetime.utcnow()
+        if "status" not in final_data:
+            final_data["status"] = Status.PENDING
 
-        # Create order
-        logger.info(f"Creating order for client {schema.client_id}")
-        return super().save(schema)
+        logger.info(f"Creating order for client {client_id}")
+        
+        # Bypass super().save() slightly to use our enriched data
+        item = self._model(**final_data)
+        created_item = self._repository.create(item)
+        return self._schema.model_validate(created_item)
 
     def update(self, id_key: int, schema: OrderSchema) -> OrderSchema:
-        """
-        Update an order with validation
-
-        Args:
-            id_key: Order ID
-            schema: Updated order data (partial updates allowed)
-
-        Returns:
-            Updated order
-
-        Raises:
-            InstanceNotFoundError: If order, client, or bill doesn't exist
-            ValueError: If validation fails
-        """
-        # Validate client exists if being updated
         if schema.client_id is not None:
             try:
                 self._client_repository.find(schema.client_id)
@@ -102,7 +86,6 @@ class OrderService(BaseServiceImpl):
                 logger.error(f"Client with id {schema.client_id} not found")
                 raise InstanceNotFoundError(f"Client with id {schema.client_id} not found")
 
-        # Validate bill exists if being updated
         if schema.bill_id is not None:
             try:
                 self._bill_repository.find(schema.bill_id)
@@ -110,7 +93,6 @@ class OrderService(BaseServiceImpl):
                 logger.error(f"Bill with id {schema.bill_id} not found")
                 raise InstanceNotFoundError(f"Bill with id {schema.bill_id} not found")
 
-        # Validate total if provided
         if schema.total is not None and schema.total < 0:
             raise ValueError("total must be >= 0")
 
