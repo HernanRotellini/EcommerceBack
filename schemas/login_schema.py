@@ -1,4 +1,5 @@
 """Login schemas for authentication."""
+from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 
 class LoginRequest(BaseModel):
@@ -9,7 +10,7 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     """Schema for login response."""
     id_key: int
-    name: str
-    lastname: str          
-    email: EmailStr        
-    is_admin: bool = False 
+    name: Optional[str] = None     # ✅ Ahora es opcional
+    lastname: Optional[str] = None # ✅ Ahora es opcional
+    email: EmailStr
+    is_admin: bool = False
