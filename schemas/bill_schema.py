@@ -11,15 +11,25 @@ if TYPE_CHECKING:
     from schemas.client_schema import ClientSchema
 
 
-class BillSchema(BaseSchema):
-    """Schema for Bill entity with validations."""
-
+# 1. Creamos una clase BASE con los campos comunes
+class BillBaseSchema(BaseSchema):
     bill_number: str = Field(..., min_length=1, max_length=50, description="Unique bill number (required)")
     discount: Optional[float] = Field(None, ge=0, description="Discount amount (must be >= 0)")
     date: DateType = Field(..., description="Bill date (required)")
     total: float = Field(..., ge=0, description="Total amount (must be >= 0, required)")
     payment_type: PaymentType = Field(..., description="Payment type (required)")
     client_id: int = Field(..., description="Client ID reference (required)")
+
+
+# 2. Esquema para CREAR (No pide id_key)
+class BillCreateSchema(BillBaseSchema):
+    pass
+
+
+# 3. Esquema para RESPONDER (Incluye id_key y relaciones)
+class BillSchema(BillBaseSchema):
+    """Schema for Bill entity with validations."""
+    id_key: int  # ✅ Solo aquí es obligatorio
 
     # Relationships
     order: Optional["OrderSchema"] = None
