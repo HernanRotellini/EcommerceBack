@@ -42,7 +42,8 @@ class ClientController(BaseControllerImpl):
             return LoginResponse(
                 id_key=client.id_key,
                 name=client.name,
-                lastname=client.lastname, 
-                email=client.email,       
-                is_admin=client.is_admin  
+                lastname=client.lastname,
+                email=client.email,
+                telephone=client.telephone,  
+                is_admin=client.is_admin
             )

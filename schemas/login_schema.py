@@ -10,7 +10,8 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     """Schema for login response."""
     id_key: int
-    name: Optional[str] = None     # ✅ Ahora es opcional
-    lastname: Optional[str] = None # ✅ Ahora es opcional
+    name: Optional[str] = None     
+    lastname: Optional[str] = None 
+    telephone: Optional[str] = None 
     email: EmailStr
     is_admin: bool = False
