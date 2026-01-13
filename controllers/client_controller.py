@@ -3,9 +3,9 @@ from typing import Optional
 from fastapi import HTTPException, Depends
 from sqlalchemy.orm import Session
 from controllers.base_controller_impl import BaseControllerImpl
-# ✅ Importamos los esquemas específicos
+# ✅ Volvemos a importar ClientSchema
 from schemas.client_schema import (
-    ClientResponseSchema, 
+    ClientSchema, 
     ClientCreateSchema, 
     ClientUpdateSchema
 )
@@ -19,9 +19,9 @@ class ClientController(BaseControllerImpl):
 
     def __init__(self):
         super().__init__(
-            schema=ClientResponseSchema,      # ✅ GET: Esquema limpio (sin pass, con id)
-            create_schema=ClientCreateSchema, # ✅ POST: Con password
-            update_schema=ClientUpdateSchema, # ✅ PUT: Opcional
+            schema=ClientSchema,              # ✅ Usamos ClientSchema (seguro)
+            create_schema=ClientCreateSchema, # ✅ POST con password
+            update_schema=ClientUpdateSchema, # ✅ PUT opcional
             service_factory=lambda db: ClientService(db),
             tags=["Clients"]
         )
