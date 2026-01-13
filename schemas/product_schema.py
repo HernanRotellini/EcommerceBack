@@ -4,7 +4,7 @@ from schemas.base_schema import BaseSchema
 from schemas.category_schema import CategoryBaseSchema
 
 if TYPE_CHECKING:
-    from schemas.order_detail_schema import OrderDetailSchema
+    # from schemas.order_detail_schema import OrderDetailSchema  <-- COMENTAR O BORRAR
     from schemas.review_schema import ReviewSchema
 
 class ProductBaseSchema(BaseSchema):
@@ -18,7 +18,8 @@ class ProductBaseSchema(BaseSchema):
 class ProductSchema(ProductBaseSchema):
     model_config = ConfigDict(from_attributes=True)
     reviews: Optional[List['ReviewSchema']] = []
-    order_details: Optional[List['OrderDetailSchema']] = []
+    
+
 
 class ProductAdminSchema(ProductBaseSchema):
     pass

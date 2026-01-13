@@ -1,24 +1,17 @@
-from typing import Optional, List, TYPE_CHECKING
-from pydantic import Field
-from schemas.base_schema import BaseSchema
+from sqlalchemy import Column, Integer, ForeignKey, Float
+from sqlalchemy.orm import relationship
+from models.base_model import BaseModel
 
-if TYPE_CHECKING:
-    from schemas.category_schema import CategorySchema
+class OrderDetailModel(BaseModel):
+    __tablename__ = "order_details"
 
+    quantity = Column(Integer, nullable=False)
+    price = Column(Float, nullable=False)
+    
+    order_id = Column(Integer, ForeignKey("orders.id_key"))
+    product_id = Column(Integer, ForeignKey("products.id_key"))
 
-class ProductBaseSchema(BaseSchema):
-    name: str = Field(..., min_length=1, max_length=100)
-    description: Optional[str] = None
-    price: float = Field(..., ge=0)
-    stock: int = Field(..., ge=0)
-    image_url: Optional[str] = None
-    category_id: int
-
-class ProductCreateSchema(ProductBaseSchema):
-    pass
-
-class ProductSchema(ProductBaseSchema):
-    id_key: int
-
-    category: Optional["CategorySchema"] = None
-    # order_details: List["OrderDetailSchema"] = [] 
+    # ✅ IMPORTANTE: Usa strings "OrderModel" y "ProductModel"
+    # No hagas: from models.order import OrderModel
+    order = relationship("OrderModel", back_populates="details")
+    product = relationship("ProductModel")
