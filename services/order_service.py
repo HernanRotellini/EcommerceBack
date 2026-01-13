@@ -56,14 +56,6 @@ class OrderService(BaseServiceImpl):
             logger.error(f"Bill with id {bill_id} not found")
             raise InstanceNotFoundError(f"Bill with id {bill_id} not found")
 
-        # Inject defaults if missing
-        if "date" not in order_data:
-            # We modify the schema object itself if possible, or prepare data for super
-            # Since super().save() expects a schema, let's inject into a new model instance
-            # But BaseService.save expects a schema.
-            # The trick: We create the Model instance manually here to bypass Schema validation of missing fields
-            pass 
-
         # Create Model directly to inject defaults safely
         final_data = order_data.copy()
         if "date" not in final_data:
@@ -73,10 +65,9 @@ class OrderService(BaseServiceImpl):
 
         logger.info(f"Creating order for client {client_id}")
         
-        # Bypass super().save() slightly to use our enriched data
         item = self._model(**final_data)
-        created_item = self._repository.create(item)
-        return self._schema.model_validate(created_item)
+        
+        return self._repository.save(item)
 
     def update(self, id_key: int, schema: OrderSchema) -> OrderSchema:
         if schema.client_id is not None:
