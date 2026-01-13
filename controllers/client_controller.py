@@ -3,8 +3,12 @@ from typing import Optional
 from fastapi import HTTPException, Depends
 from sqlalchemy.orm import Session
 from controllers.base_controller_impl import BaseControllerImpl
-# ✅ Importamos los 3 esquemas
-from schemas.client_schema import ClientSchema, ClientUpdateSchema, ClientCreateSchema
+# ✅ Importamos los esquemas específicos
+from schemas.client_schema import (
+    ClientResponseSchema, 
+    ClientCreateSchema, 
+    ClientUpdateSchema
+)
 from schemas.login_schema import LoginRequest, LoginResponse
 from services.client_service import ClientService
 from config.database import get_db
@@ -15,17 +19,15 @@ class ClientController(BaseControllerImpl):
 
     def __init__(self):
         super().__init__(
-            schema=ClientSchema,           
-            create_schema=ClientCreateSchema, 
-            update_schema=ClientUpdateSchema, 
+            schema=ClientResponseSchema,      # ✅ GET: Esquema limpio (sin pass, con id)
+            create_schema=ClientCreateSchema, # ✅ POST: Con password
+            update_schema=ClientUpdateSchema, # ✅ PUT: Opcional
             service_factory=lambda db: ClientService(db),
             tags=["Clients"]
         )
         self._register_login_route()
 
     def _register_login_route(self):
-        """Register login endpoint."""
-
         @self.router.post("/login", response_model=LoginResponse)
         async def login(request: LoginRequest, db: Session = Depends(get_db)):
             service = self.service_factory(db)
