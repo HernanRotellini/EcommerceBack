@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import HTTPException, Depends
 from sqlalchemy.orm import Session
 from controllers.base_controller_impl import BaseControllerImpl
-from schemas.client_schema import ClientSchema
+from schemas.client_schema import ClientSchema, ClientUpdateSchema  # ✅ Importamos el UpdateSchema
 from schemas.login_schema import LoginRequest, LoginResponse
 from services.client_service import ClientService
 from config.database import get_db
@@ -20,6 +20,7 @@ class ClientController(BaseControllerImpl):
         """
         super().__init__(
             schema=ClientSchema,
+            update_schema=ClientUpdateSchema, # ✅ Configuramos el esquema flexible para actualizaciones
             service_factory=lambda db: ClientService(db),
             tags=["Clients"]
         )

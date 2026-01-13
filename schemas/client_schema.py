@@ -10,14 +10,19 @@ if TYPE_CHECKING:
 
 
 class ClientSchema(BaseSchema):
-    """Schema for Client entity with validations."""
+    """Schema for Client entity with validations (Used for Create/Read)."""
 
     name: str = Field(..., min_length=1, max_length=100, description="Client's first name")
     lastname: str = Field(..., min_length=1, max_length=100, description="Client's last name")
     email: EmailStr = Field(..., description="Client's email address")
-    telephone: Optional[str] = Field(
-        None,
-        description="Client's phone number"
-    )
+    telephone: Optional[str] = Field(None, description="Client's phone number")
     password: str = Field(..., min_length=1, description="Client's password")
     is_admin: bool = Field(default=False, description="Whether the client is an admin")
+
+
+class ClientUpdateSchema(BaseSchema):
+    name: Optional[str] = None
+    lastname: Optional[str] = None
+    email: Optional[EmailStr] = None
+    telephone: Optional[str] = None
+    password: Optional[str] = None 
