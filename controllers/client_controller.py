@@ -19,22 +19,30 @@ class ClientController(BaseControllerImpl):
 
     def __init__(self):
         super().__init__(
-            schema=ClientSchema,              # ✅ Usamos ClientSchema (seguro)
-            create_schema=ClientCreateSchema, # ✅ POST con password
-            update_schema=ClientUpdateSchema, # ✅ PUT opcional
+            schema=ClientSchema,              
+            create_schema=ClientCreateSchema, 
+            update_schema=ClientUpdateSchema, 
             service_factory=lambda db: ClientService(db),
             tags=["Clients"]
         )
         self._register_login_route()
 
     def _register_login_route(self):
+        """Register login endpoint."""
+
         @self.router.post("/login", response_model=LoginResponse)
         async def login(request: LoginRequest, db: Session = Depends(get_db)):
             service = self.service_factory(db)
             client = service.authenticate(request.email, request.password)
+            
             if not client:
                 raise HTTPException(status_code=401, detail="Invalid credentials")
+            
+            
             return LoginResponse(
                 id_key=client.id_key,
-                name=client.name
+                name=client.name,
+                lastname=client.lastname, 
+                email=client.email,       
+                is_admin=client.is_admin  
             )
