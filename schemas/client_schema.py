@@ -1,23 +1,18 @@
 """Client schema for request/response validation."""
-from typing import Optional, List, TYPE_CHECKING
-from pydantic import EmailStr, Field
-
+from typing import Optional
+from pydantic import EmailStr, Field, ConfigDict
 from schemas.base_schema import BaseSchema
 
-if TYPE_CHECKING:
-    from schemas.address_schema import AddressSchema
-    from schemas.order_schema import OrderSchema
 
+class ClientBaseSchema(BaseSchema):
+    name: str = Field(..., min_length=1, max_length=100)
+    lastname: str = Field(..., min_length=1, max_length=100)
+    email: EmailStr = Field(...)
+    telephone: Optional[str] = Field(None)
+    is_admin: bool = Field(default=False)
 
-class ClientSchema(BaseSchema):
-    """Schema for Client entity with validations (Used for Create/Read)."""
-
-    name: str = Field(..., min_length=1, max_length=100, description="Client's first name")
-    lastname: str = Field(..., min_length=1, max_length=100, description="Client's last name")
-    email: EmailStr = Field(..., description="Client's email address")
-    telephone: Optional[str] = Field(None, description="Client's phone number")
-    password: str = Field(..., min_length=1, description="Client's password")
-    is_admin: bool = Field(default=False, description="Whether the client is an admin")
+class ClientCreateSchema(ClientBaseSchema):
+    password: str = Field(..., min_length=1)
 
 
 class ClientUpdateSchema(BaseSchema):
@@ -25,4 +20,8 @@ class ClientUpdateSchema(BaseSchema):
     lastname: Optional[str] = None
     email: Optional[EmailStr] = None
     telephone: Optional[str] = None
-    password: Optional[str] = None 
+    password: Optional[str] = None
+
+class ClientSchema(ClientBaseSchema):
+    id_key: int
+    model_config = ConfigDict(from_attributes=True)

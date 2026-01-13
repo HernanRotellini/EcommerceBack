@@ -3,7 +3,8 @@ from typing import Optional
 from fastapi import HTTPException, Depends
 from sqlalchemy.orm import Session
 from controllers.base_controller_impl import BaseControllerImpl
-from schemas.client_schema import ClientSchema, ClientUpdateSchema  # ✅ Importamos el UpdateSchema
+# ✅ Importamos los 3 esquemas
+from schemas.client_schema import ClientSchema, ClientUpdateSchema, ClientCreateSchema
 from schemas.login_schema import LoginRequest, LoginResponse
 from services.client_service import ClientService
 from config.database import get_db
@@ -13,14 +14,10 @@ class ClientController(BaseControllerImpl):
     """Controller for Client entity with CRUD operations."""
 
     def __init__(self):
-        """
-        Initialize ClientController with dependency injection.
-
-        The service is created per request with the database session.
-        """
         super().__init__(
-            schema=ClientSchema,
-            update_schema=ClientUpdateSchema, # ✅ Configuramos el esquema flexible para actualizaciones
+            schema=ClientSchema,           
+            create_schema=ClientCreateSchema, 
+            update_schema=ClientUpdateSchema, 
             service_factory=lambda db: ClientService(db),
             tags=["Clients"]
         )
