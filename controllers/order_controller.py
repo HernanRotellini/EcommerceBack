@@ -9,6 +9,8 @@ from schemas.order_schema import OrderSchema, OrderCreateSchema, OrderUpdateSche
 from services.order_service import OrderService
 from models.order import OrderModel
 from models.enums import Status
+# ✅ Importamos la excepción para capturarla
+from repositories.base_repository_impl import InstanceNotFoundError
 
 class OrderController(BaseControllerImpl):
     def __init__(self):
@@ -37,17 +39,21 @@ class OrderController(BaseControllerImpl):
         async def update_order_status(id: int, status_data: OrderStatusUpdate, db: Session = Depends(get_db)):
             service = self.service_factory(db)
             
-         
-            order = service.read(id)
-            
-            if not order:
-                raise HTTPException(status_code=404, detail="Order not found")
-            
             try:
+                # Convertimos el entero (ej: 2) al Enum (Status.IN_PROGRESS)
                 new_status = Status(status_data.status)
-                order.status = new_status
-                db.commit()
-                db.refresh(order)
-                return order
+                
+                # ✅ SOLUCIÓN DEFINITIVA: 
+                # Usamos el repositorio directamente para actualizar.
+                # service.repository.update(id, cambios) se encarga de buscar, 
+                # actualizar el modelo, hacer commit y devolver el schema actualizado.
+                updated_order = service.repository.update(id, {"status": new_status})
+                
+                return updated_order
+
             except ValueError:
+                # Si el status no es válido (ej: enviar 99)
                 raise HTTPException(status_code=400, detail="Invalid status value")
+            except InstanceNotFoundError:
+                # Si el ID no existe
+                raise HTTPException(status_code=404, detail="Order not found")
