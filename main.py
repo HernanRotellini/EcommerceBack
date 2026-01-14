@@ -1,16 +1,9 @@
-"""
-Main application module for FastAPI e-commerce REST API.
-Initializes app, routers, exception handlers and logging.
-"""
-
 import logging
 import os
-from sqlalchemy import inspect
 import uvicorn
 
-from fastapi import APIRouter, FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import os
 from fastapi.staticfiles import StaticFiles
 from starlette import status
 from starlette.responses import JSONResponse
@@ -20,12 +13,9 @@ from config.logging_config import setup_logging
 setup_logging()
 logger = logging.getLogger(__name__)
 
-# ---- ALEMBIC (IMPORTS FALTANTES 🧨) ----
+# ---- ALEMBIC ----
 from alembic.config import Config
 from alembic import command
-
-# ---- SCHEMAS ----
-import schemas
 
 # ---- CONTROLLERS ----
 from controllers.address_controller import AddressController
@@ -38,6 +28,7 @@ from controllers.product_controller import ProductController
 from controllers.review_controller import ReviewController
 from controllers.health_check import router as health_check_controller
 from controllers.cart_controller import CartController
+
 # ---- CONFIG ----
 from config.database import create_tables, engine
 from config.redis_config import redis_config, check_redis_connection
@@ -78,22 +69,27 @@ def create_fastapi_app() -> FastAPI:
     if not os.path.exists(static_dir):
         os.makedirs(static_dir)
     
-
-
-    fastapi_app.include_router(CartController().router, prefix="/api/v1/cart")  
     fastapi_app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+    # ✅ CORREGIDO: Todas las rutas bajo /api/v1 para consistencia
+    fastapi_app.include_router(CartController().router, prefix="/api/v1/cart")  
     fastapi_app.include_router(ClientController().router, prefix="/api/v1/clients")
-    fastapi_app.include_router(OrderController().router, prefix="/orders")
-    fastapi_app.include_router(ProductController().router, prefix="/products")
-    fastapi_app.include_router(AddressController().router, prefix="/addresses")
-    fastapi_app.include_router(BillController().router, prefix="/bills")
-    fastapi_app.include_router(OrderDetailController().router, prefix="/order_details")
-    fastapi_app.include_router(ReviewController().router, prefix="/reviews")
-    fastapi_app.include_router(CategoryController().router, prefix="/categories")
+    fastapi_app.include_router(OrderController().router, prefix="/api/v1/orders")
+    fastapi_app.include_router(ProductController().router, prefix="/api/v1/products")
+    fastapi_app.include_router(AddressController().router, prefix="/api/v1/addresses")
+    fastapi_app.include_router(BillController().router, prefix="/api/v1/bills")
+    fastapi_app.include_router(OrderDetailController().router, prefix="/api/v1/order_details")
+    fastapi_app.include_router(ReviewController().router, prefix="/api/v1/reviews")
+    fastapi_app.include_router(CategoryController().router, prefix="/api/v1/categories")
+    
     fastapi_app.include_router(health_check_controller, prefix="/health_check")
-    from debug_router import router as debug_router
-    fastapi_app.include_router(debug_router)
+    
+    # Debug router (si existe en tu proyecto)
+    try:
+        from debug_router import router as debug_router
+        fastapi_app.include_router(debug_router)
+    except ImportError:
+        pass
 
     fastapi_app.add_middleware(     
         CORSMiddleware,
