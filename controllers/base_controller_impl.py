@@ -36,7 +36,8 @@ class BaseControllerImpl:
         async def get_by_id(id_key: int, db: Session = Depends(get_db)):
             try:
                 service = self.service_factory(db)
-                return service.get_by_id(id_key)
+                # ✅ CORRECCIÓN: Usamos .get_one() (el nombre correcto en tus servicios)
+                return service.get_one(id_key) 
             except InstanceNotFoundError:
                 raise HTTPException(404, f"Entidad con ID {id_key} no encontrada")
             except Exception as e:
