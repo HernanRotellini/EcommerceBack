@@ -27,3 +27,4 @@ class ClientUpdateSchema(BaseSchema):
     email: Optional[EmailStr] = None
     telephone: Optional[str] = None
     password: Optional[str] = None
+    is_admin: Optional[bool] = None
