@@ -35,12 +35,14 @@ class ProductService(BaseServiceImpl):
         except Exception as e:
             logger.error(f"Failed to delete image {image_url}: {e}")
 
-    def get_all(self, skip: int = 0, limit: int = 100) -> List[ProductSchema]:
+    # ✅ MODIFICADO: Agregamos include_inactive a la firma y al cache key
+    def get_all(self, skip: int = 0, limit: int = 100, include_inactive: bool = False) -> List[ProductSchema]:
         cache_key = self.cache.build_key(
             self.cache_prefix,
             "list",
             skip=skip,
-            limit=limit
+            limit=limit,
+            inactive=str(include_inactive) # Nuevo en key
         )
 
         cached_products = self.cache.get(cache_key)
@@ -49,7 +51,9 @@ class ProductService(BaseServiceImpl):
             return [ProductSchema(**p) for p in cached_products]
 
         logger.debug(f"Cache MISS: {cache_key}")
-        products = super().get_all(skip, limit)
+        
+        # Usamos el repositorio directamente para soportar include_inactive
+        products = self._repository.find_all(skip, limit, include_inactive)
 
         products_dict = [p.model_dump() for p in products]
         self.cache.set(cache_key, products_dict)
@@ -87,6 +91,7 @@ class ProductService(BaseServiceImpl):
 
             self.cache.delete(cache_key)
             self._invalidate_list_cache()
+            self._invalidate_filter_cache() # Agregado para limpiar filtros también
 
             if old_image and product.image_url != old_image:
                 self._delete_image_file(old_image)
@@ -98,38 +103,22 @@ class ProductService(BaseServiceImpl):
             logger.error(f"Failed to update product {id_key}: {e}")
             raise
 
+    # ✅ MODIFICADO: Ahora hace Soft Delete (Desactivar) en lugar de fallar o borrar
     def delete(self, id_key: int) -> None:
-        from models.order_detail import OrderDetailModel
-        from sqlalchemy import select
+        logger.info(f"Soft deleting (deactivating) product {id_key}")
 
-        stmt = select(OrderDetailModel).where(
-            OrderDetailModel.product_id == id_key
-        ).limit(1)
+        # En lugar de borrar físicamente, actualizamos active = False
+        self._repository.update(id_key, {"active": False})
 
-        has_sales = self._repository.session.scalars(stmt).first()
-
-        if has_sales:
-            logger.error(
-                f"Cannot delete product {id_key}: has associated sales history"
-            )
-            raise ValueError(
-                f"Cannot delete product {id_key}: product has associated sales history. "
-                f"Consider marking as inactive instead of deleting."
-            )
-
-        product = self._repository.get_by_id(id_key)
-        image_to_delete = product.image_url if product else None
-
-        logger.info(f"Deleting product {id_key} (no sales history)")
-        super().delete(id_key)
-
-        if image_to_delete:
-            self._delete_image_file(image_to_delete)
-
+        # Invalidamos caché
         cache_key = self.cache.build_key(self.cache_prefix, "id", id=id_key)
         self.cache.delete(cache_key)
         self._invalidate_list_cache()
+        self._invalidate_filter_cache()
+        
+        # NOTA: No borramos la imagen porque el producto sigue existiendo (inactivo)
 
+    # ✅ MODIFICADO: Agregamos active a la firma y al cache key
     def filter_products(
         self,
         search: Optional[str] = None,
@@ -137,6 +126,7 @@ class ProductService(BaseServiceImpl):
         min_price: Optional[float] = None,
         max_price: Optional[float] = None,
         in_stock_only: bool = False,
+        active: Optional[bool] = True, # Nuevo param
         sort_by: Optional[str] = None,
         skip: int = 0,
         limit: int = 100
@@ -149,6 +139,7 @@ class ProductService(BaseServiceImpl):
             min_price=min_price or "",
             max_price=max_price or "",
             in_stock_only=str(in_stock_only),
+            active=str(active), # Nuevo en key
             sort_by=sort_by or "",
             skip=skip,
             limit=limit
@@ -166,6 +157,7 @@ class ProductService(BaseServiceImpl):
             min_price=min_price,
             max_price=max_price,
             in_stock_only=in_stock_only,
+            active=active,
             sort_by=sort_by,
             skip=skip,
             limit=limit

@@ -13,23 +13,24 @@ class ProductRepository(BaseRepositoryImpl):
     def __init__(self, db: Session):
         super().__init__(ProductModel, ProductSchema, db)
 
-    def find_all(self, skip: int = 0, limit: int = 100) -> List[ProductSchema]:
+    def find_all(self, skip: int = 0, limit: int = 100, include_inactive: bool = False) -> List[ProductSchema]:
         """
         Get all products WITHOUT nested order_details.product circular reference.
+        Default: Active only (unless include_inactive=True).
         """
-        products = (
-            self.session.query(ProductModel)
-            .options(
-                # ✅ Carga category sin problemas
-                joinedload(ProductModel.category),
-                # ✅ Carga reviews sin problemas
-                selectinload(ProductModel.reviews),
-                # ❌ NO carga order_details para evitar ciclo
-            )
-            .offset(skip)
-            .limit(limit)
-            .all()
+        query = self.session.query(ProductModel).options(
+            # ✅ Carga category sin problemas
+            joinedload(ProductModel.category),
+            # ✅ Carga reviews sin problemas
+            selectinload(ProductModel.reviews),
+            # ❌ NO carga order_details para evitar ciclo
         )
+
+        # ✅ NUEVO: Filtro de activos por defecto
+        if not include_inactive:
+            query = query.filter(ProductModel.active == True)
+
+        products = query.offset(skip).limit(limit).all()
         
         # ✅ Convertir a schema usando model_validate
         return [ProductSchema.model_validate(product) for product in products]
@@ -45,7 +46,7 @@ class ProductRepository(BaseRepositoryImpl):
             .options(
                 joinedload(ProductModel.category),
                 selectinload(ProductModel.reviews),
-                # ✅ SOLUCIÓN: Carga order_details pero NO el product anidado
+                # ✅ TU SOLUCIÓN ORIGINAL: Carga order_details pero NO el product anidado
                 selectinload(ProductModel.order_details).lazyload(OrderDetailModel.product)
             )
             .filter(ProductModel.id_key == id_key)
@@ -67,6 +68,7 @@ class ProductRepository(BaseRepositoryImpl):
         min_price: Optional[float] = None,
         max_price: Optional[float] = None,
         in_stock_only: bool = False,
+        active: Optional[bool] = True, # ✅ NUEVO PARAMETRO
         sort_by: Optional[str] = None,
         skip: int = 0,
         limit: int = 100
@@ -99,6 +101,10 @@ class ProductRepository(BaseRepositoryImpl):
 
         if in_stock_only:
             query = query.filter(ProductModel.stock > 0)
+            
+        # ✅ NUEVO: Filtro activo/inactivo
+        if active is not None:
+            query = query.filter(ProductModel.active == active)
 
         # Sorting
         if sort_by == "price_asc":
