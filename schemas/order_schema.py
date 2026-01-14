@@ -38,3 +38,6 @@ class OrderSchema(OrderBaseSchema):
     details: List["OrderDetailSchema"] = []
     
     model_config = ConfigDict(from_attributes=True)
+    
+class OrderStatusUpdate(BaseSchema):
+    status: Status
