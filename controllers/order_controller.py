@@ -23,6 +23,7 @@ class OrderController(BaseControllerImpl):
 
     def _register_custom_routes(self):
         
+        # Endpoint para historial de compras del cliente
         @self.router.get("/client/{client_id}", response_model=List[OrderSchema])
         async def get_orders_by_client(client_id: int, db: Session = Depends(get_db)):
             stmt = (
@@ -33,16 +34,22 @@ class OrderController(BaseControllerImpl):
             orders = db.execute(stmt).scalars().all()
             return orders
 
+        # Endpoint PATCH para actualizar solo el estado (Admin)
         @self.router.patch("/id/{id}/status", response_model=OrderSchema)
         async def update_order_status(id: int, status_data: OrderStatusUpdate, db: Session = Depends(get_db)):
             service = self.service_factory(db)
-            order = service.get_by_id(id)
+            
+            # ✅ CORRECCIÓN: Usamos .read(id) porque get_by_id no existe en tu Service
+            order = service.read(id)
             
             if not order:
                 raise HTTPException(status_code=404, detail="Order not found")
             
             try:
+                # Convertimos el entero recibido al Enum Status
                 new_status = Status(status_data.status)
+                
+                # Actualizamos y guardamos
                 order.status = new_status
                 db.commit()
                 db.refresh(order)
