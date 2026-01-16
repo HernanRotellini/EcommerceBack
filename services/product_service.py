@@ -35,14 +35,14 @@ class ProductService(BaseServiceImpl):
         except Exception as e:
             logger.error(f"Failed to delete image {image_url}: {e}")
 
-    # ✅ MODIFICADO: Agregamos include_inactive a la firma y al cache key
+    # ✅ Aceptamos include_inactive para el Admin
     def get_all(self, skip: int = 0, limit: int = 100, include_inactive: bool = False) -> List[ProductSchema]:
         cache_key = self.cache.build_key(
             self.cache_prefix,
             "list",
             skip=skip,
             limit=limit,
-            inactive=str(include_inactive) # Nuevo en key
+            inactive=str(include_inactive)
         )
 
         cached_products = self.cache.get(cache_key)
@@ -52,7 +52,7 @@ class ProductService(BaseServiceImpl):
 
         logger.debug(f"Cache MISS: {cache_key}")
         
-        # Usamos el repositorio directamente para soportar include_inactive
+        # Usamos el repositorio directamente para filtrar activos/inactivos
         products = self._repository.find_all(skip, limit, include_inactive)
 
         products_dict = [p.model_dump() for p in products]
@@ -91,34 +91,33 @@ class ProductService(BaseServiceImpl):
 
             self.cache.delete(cache_key)
             self._invalidate_list_cache()
-            self._invalidate_filter_cache() # Agregado para limpiar filtros también
+            self._invalidate_filter_cache()
 
             if old_image and product.image_url != old_image:
                 self._delete_image_file(old_image)
 
-            logger.info(f"Product {id_key} updated and cache invalidated successfully")
+            logger.info(f"Product {id_key} updated successfully")
             return product
 
         except Exception as e:
             logger.error(f"Failed to update product {id_key}: {e}")
             raise
 
-    # ✅ MODIFICADO: Ahora hace Soft Delete (Desactivar) en lugar de fallar o borrar
+    # ✅ SOLUCIÓN AL BORRADO FÍSICO: Ahora hacemos Soft Delete
     def delete(self, id_key: int) -> None:
         logger.info(f"Soft deleting (deactivating) product {id_key}")
 
-        # En lugar de borrar físicamente, actualizamos active = False
+        # En lugar de super().delete(), hacemos un UPDATE del campo active
         self._repository.update(id_key, {"active": False})
 
-        # Invalidamos caché
+        # Limpiamos caché
         cache_key = self.cache.build_key(self.cache_prefix, "id", id=id_key)
         self.cache.delete(cache_key)
         self._invalidate_list_cache()
         self._invalidate_filter_cache()
         
-        # NOTA: No borramos la imagen porque el producto sigue existiendo (inactivo)
+        # Nota: No borramos la imagen porque el producto sigue existiendo (solo está oculto)
 
-    # ✅ MODIFICADO: Agregamos active a la firma y al cache key
     def filter_products(
         self,
         search: Optional[str] = None,
@@ -126,7 +125,7 @@ class ProductService(BaseServiceImpl):
         min_price: Optional[float] = None,
         max_price: Optional[float] = None,
         in_stock_only: bool = False,
-        active: Optional[bool] = True, # Nuevo param
+        active: Optional[bool] = True,
         sort_by: Optional[str] = None,
         skip: int = 0,
         limit: int = 100
@@ -139,7 +138,7 @@ class ProductService(BaseServiceImpl):
             min_price=min_price or "",
             max_price=max_price or "",
             in_stock_only=str(in_stock_only),
-            active=str(active), # Nuevo en key
+            active=str(active),
             sort_by=sort_by or "",
             skip=skip,
             limit=limit

@@ -6,28 +6,29 @@ from schemas.category_schema import CategoryBaseSchema
 if TYPE_CHECKING:
     from schemas.review_schema import ReviewSchema
 
-# Esquema Base
+# ✅ ESQUEMA BASE: Solo datos simples (sin objetos complejos)
 class ProductBaseSchema(BaseSchema):
     name: str = Field(..., min_length=1, max_length=200)
     price: float = Field(..., gt=0)
     stock: int = Field(default=0, ge=0)
     image_url: Optional[str] = Field(None)
     category_id: Optional[int] = Field(None)
-    active: bool = True # ✅ Nuevo campo
+    active: bool = True # Vital para el borrado lógico
 
-# ✅ Esquemas LIMPIOS para escritura (Soluciona error 400 en PUT/POST)
+# ✅ ESQUEMA DE LECTURA: Aquí sí incluimos los objetos anidados
+class ProductSchema(ProductBaseSchema):
+    model_config = ConfigDict(from_attributes=True)
+    
+    # Estos campos son solo para mostrar datos, no para guardar
+    category: Optional[CategoryBaseSchema] = None 
+    reviews: Optional[List['ReviewSchema']] = []
+
+# ✅ ESQUEMAS DE ESCRITURA: Limpios (heredan de Base)
 class ProductCreateSchema(ProductBaseSchema):
     pass
 
 class ProductUpdateSchema(ProductBaseSchema):
     pass
-
-# Esquema Completo para Lectura (Incluye relaciones)
-class ProductSchema(ProductBaseSchema):
-    model_config = ConfigDict(from_attributes=True)
-    
-    category: Optional[CategoryBaseSchema] = None
-    reviews: Optional[List['ReviewSchema']] = []
 
 class ProductAdminSchema(ProductBaseSchema):
     pass
