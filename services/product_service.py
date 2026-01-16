@@ -35,7 +35,6 @@ class ProductService(BaseServiceImpl):
         except Exception as e:
             logger.error(f"Failed to delete image {image_url}: {e}")
 
-    # ✅ Aceptamos include_inactive para el Admin
     def get_all(self, skip: int = 0, limit: int = 100, include_inactive: bool = False) -> List[ProductSchema]:
         cache_key = self.cache.build_key(
             self.cache_prefix,
@@ -52,7 +51,6 @@ class ProductService(BaseServiceImpl):
 
         logger.debug(f"Cache MISS: {cache_key}")
         
-        # Usamos el repositorio directamente para filtrar activos/inactivos
         products = self._repository.find_all(skip, limit, include_inactive)
 
         products_dict = [p.model_dump() for p in products]
@@ -84,7 +82,9 @@ class ProductService(BaseServiceImpl):
         cache_key = self.cache.build_key(self.cache_prefix, "id", id=id_key)
 
         try:
-            old_product = self._repository.get_by_id(id_key)
+            # ⚠️ CORRECCIÓN AQUÍ: Usamos .find() en lugar de .get_by_id()
+            # porque ProductRepository usa 'find' para manejar lazyloads.
+            old_product = self._repository.find(id_key)
             old_image = old_product.image_url if old_product else None
 
             product = super().update(id_key, schema)
@@ -103,21 +103,17 @@ class ProductService(BaseServiceImpl):
             logger.error(f"Failed to update product {id_key}: {e}")
             raise
 
-    # ✅ SOLUCIÓN AL BORRADO FÍSICO: Ahora hacemos Soft Delete
     def delete(self, id_key: int) -> None:
         logger.info(f"Soft deleting (deactivating) product {id_key}")
 
-        # En lugar de super().delete(), hacemos un UPDATE del campo active
+        # Soft delete: solo actualizamos active = False
         self._repository.update(id_key, {"active": False})
 
-        # Limpiamos caché
         cache_key = self.cache.build_key(self.cache_prefix, "id", id=id_key)
         self.cache.delete(cache_key)
         self._invalidate_list_cache()
         self._invalidate_filter_cache()
         
-        # Nota: No borramos la imagen porque el producto sigue existiendo (solo está oculto)
-
     def filter_products(
         self,
         search: Optional[str] = None,
