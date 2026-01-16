@@ -19,9 +19,17 @@ class ProductController(BaseControllerImpl):
             service_factory=lambda db: ProductService(db),
             tags=["Products"]
         )
+        
+        # ⚠️ CORRECCIÓN CLAVE:
+        # Eliminamos la ruta GET / que creó BaseControllerImpl para que no choque con la nuestra.
+        self.router.routes = [
+            r for r in self.router.routes 
+            if not (r.path == "/" and "GET" in r.methods)
+        ]
+
         self._register_filter_route()
         self._register_upload_route()
-        self._register_custom_get_all() # Registramos el GET personalizado
+        self._register_custom_get_all() # Ahora sí, registramos la nuestra
 
     # ✅ GET Personalizado para soportar el parámetro include_inactive
     def _register_custom_get_all(self):
