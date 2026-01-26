@@ -93,7 +93,7 @@ def create_fastapi_app() -> FastAPI:
 
     fastapi_app.add_middleware(     
         CORSMiddleware,
-        allow_origins=["*"],  
+        allow_origins=["https://frontecommercefinal.vercel.app"],  
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
